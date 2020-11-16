@@ -7,4 +7,62 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(janitor)
+library(here)
+library(lubridate)
 ```
+
+```{r}
+# Read in data (HIDE THIS CODE CHUNK)
+bonanza_hares <- read_csv(here("data", "bonanza_hares.csv")) %>%
+  clean_names()
+```
+
+
+## Introduction
+
+## Data and analyses
+
+## Exploratory findings
+
+### 1) Annual juvenile hare trap counts
+
+```{r}
+juv_hares <- bonanza_hares %>% 
+  filter(age == "j") %>% 
+  mutate(date_new = mdy(date)) %>%
+  mutate(year_new = year(date_new)) %>% 
+  count(year_new)
+
+ggplot(data = juv_hares, aes(x = year_new, y = n)) +
+  geom_line() +
+  labs(x = "year", y = "count", title = "Number of juvenile hares trapped from 1999-2012") +
+  theme_minimal() +
+  scale_x_continuous(breaks = c(1999, 2001, 2003, 2005, 2007, 2009, 2011))
+```
+
+
+### 2) Visualize juvenile hare weights
+
+Create a finalized data visualization (or visualizations) in which you compare **juvenile hare weights by sex and site (grid)** (ignore other variables). You should include groups where these variables are not recorded (`NA`). Include finalized figure captions below your visualization(s).
+
+```{r}
+juv_hares_sex_site <- bonanza_hares %>% 
+  filter(age == "j") %>% 
+  select("sex", "grid", "weight")
+
+ggplot(data = juv_hares_sex_site, aes(x = weight)) +
+  geom_density(aes(fill = sex, bins = 15, alpha = 0.8)) +
+  facet_wrap(~grid + sex, nrow = 3) +
+  theme_minimal()
+```
+
+
+### 3) Juvenile weight comparison (male & female snowshoe hares)
+
+### 4) Relationship between juvenile weight & hind foot length
+
+## Summary
+
+## Citations 
