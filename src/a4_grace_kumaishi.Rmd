@@ -11,6 +11,10 @@ library(tidyverse)
 library(janitor)
 library(here)
 library(lubridate)
+library(kableExtra)
+library(ggbeeswarm)
+library(ggplot2)
+library(effsize)
 ```
 
 ```{r}
@@ -36,8 +40,8 @@ juv_hares <- bonanza_hares %>%
   count(year_new)
 
 ggplot(data = juv_hares, aes(x = year_new, y = n)) +
-  geom_line() +
-  labs(x = "year", y = "count", title = "Number of juvenile hares trapped from 1999-2012") +
+  geom_col(fill = "darkolivegreen") +
+  labs(x = "Year", y = "Count", title = "Number of juvenile hares trapped between 1999 and 2012") +
   theme_minimal() +
   scale_x_continuous(breaks = c(1999, 2001, 2003, 2005, 2007, 2009, 2011))
 ```
@@ -53,16 +57,130 @@ juv_hares_sex_site <- bonanza_hares %>%
   select("sex", "grid", "weight")
 
 ggplot(data = juv_hares_sex_site, aes(x = weight)) +
-  geom_density(aes(fill = sex, bins = 15, alpha = 0.8)) +
-  facet_wrap(~grid + sex, nrow = 3) +
+  geom_density(aes(fill = sex, alpha = 0.5)) +
+  facet_wrap(~grid, nrow = 3) +
+  theme_minimal()
+
+ggplot() +
+  geom_beeswarm(data = juv_hares_sex_site, 
+                aes(x = sex, y = weight, color = sex),
+                size = 2,
+                alpha = 0.5) +
+  geom_boxplot(data = juv_hares_sex_site, 
+             aes(x = sex, y = weight),
+             width = 0.3,
+             size = 0.5,
+             alpha = 0) +
+  theme_minimal()
+
+ggplot() +
+  geom_beeswarm(data = juv_hares_sex_site, 
+                aes(x = grid, y = weight, color = grid),
+                size = 2,
+                alpha = 0.5) +
+  geom_boxplot(data = juv_hares_sex_site, 
+             aes(x = grid, y = weight),
+             width = 0.3,
+             size = 0.5,
+             alpha = 0) +
   theme_minimal()
 ```
 
 
 ### 3) Juvenile weight comparison (male & female snowshoe hares)
+Further compare mean weights for **juvenile male and female snowshoe hares** included in this study. In this section, you should include:
+
+A finalized table containing the mean, standard deviation, and sample size for male and female juvenile snowshoe hares, with a table caption (remember, this is placed *above* the table in your report)
+A 2 - 3 sentence comprehensive statement of the means comparison, including at least:
+The actual difference in means
+Effect size (Cohen's *d*)
+Outcome of a two-sample t-test
+
+```{r}
+juv_hare_stats <- juv_hares_sex_site %>% 
+  group_by(sex) %>% 
+  summarize(mean_weight = mean(weight, na.rm = TRUE),
+            sd_weight = sd(weight, na.rm = TRUE),
+            n = n())
+
+kbl(juv_hare_stats) %>% 
+  kable_styling()
+```
+
+Create Vectors
+```{r}
+juv_hares_f <- juv_hares_sex_site %>% 
+  filter(sex == "f") %>% 
+  pull(weight)
+
+juv_hares_m <- juv_hares_sex_site %>% 
+  filter(sex == "m") %>% 
+  pull(weight)
+
+juv_hares_ttest <- t.test(juv_hares_f, juv_hares_m)
+
+juv_hares_ttest
+
+cohen.d(juv_hares_f, juv_hares_m, na.rm = TRUE)
+```
+
+Exploratory Graphs
+```{r}
+# Histogram
+ggplot(data = juv_hares_sex_site, aes(x = weight)) +
+  geom_histogram(bins = 15) +
+  facet_wrap(~sex) +
+  theme_minimal()
+
+# QQ-plot
+ggplot(data = juv_hares_sex_site, aes(sample = weight)) +
+  geom_qq() +
+  facet_wrap(~sex) +
+  theme_minimal() 
+```
+
 
 ### 4) Relationship between juvenile weight & hind foot length
+
+Relationship between juvenile weight & hind foot length. Explore the relationship between juvenile snowshoe hare hind foot length (variable `hindft`, recorded in millimeters), and weight. Include all juvenile hares in the study. Create a final visualization of juvenile hare hind foot length versus weight. Include a figure caption.
+
+Upon seeing your graph, your “boss” tells you to try out linear regression to describe how juvenile snowshoe hare weight changes with respect to hind foot length. Try it out (the only variables you are expected to include here are hind foot length and weight, using data for all juvenile hares in the data, e.g. you are not expected to explore impacts of sex, site, etc.), and check the model diagnostics.
+
+In 2 - 3 sentences below your figure, describe the outcome of your linear regression exploration (e.g. slope interpretation, R2 value, and Pearson's r correlation) and touch briefly on which assumption(s) of linear regression may be a concern, and additional thoughts you have about how well (or not well…) the linear model describes the relationship. What worries you? 
+
+```{r}
+juv_hares_weight_foot <- bonanza_hares %>% 
+  filter(age == "j") %>% 
+  select("weight", "hindft")
+```
+
+```{r}
+ggplot(data = juv_hares_weight_foot, aes(x = weight, y = hindft)) + 
+  geom_point(color = "slateblue") +
+  geom_smooth(method = lm,
+              color = "black",
+              size = 0.5,
+              fill = "gray10",
+              alpha = 0.5) +
+  theme_light() +
+  ggpubr::stat_regline_equation(label.x = 1200, label.y = 90)
+
+hares_cor <- cor.test(juv_hares_weight_foot$weight, juv_hares_weight_foot$hindft)
+
+hares_cor
+```
+
+```{r}
+# Linear model, stored as hares_lm:
+hares_lm <- lm(weight ~ hindft, data = juv_hares_weight_foot)
+
+# Return the complete overview:
+summary(hares_lm)
+```
+
 
 ## Summary
 
 ## Citations 
+
+[Kielland, K., F.S. Chapin, R.W. Ruess, and Bonanza Creek LTER. 2017. Snowshoe hare physical data in Bonanza Creek Experimental Forest: 1999-Present ver 22. Environmental Data Initiative. ](https://doi.org/10.6073/pasta/03dce4856d79b91557d8e6ce2cbcdc14) 
